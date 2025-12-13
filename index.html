@@ -87,5 +87,47 @@
 
     if (bounds.length > 1) map.fitBounds(bounds, { padding: [20, 20] });
   </script>
+  <script>
+  // GeoJSON incollato direttamente (come dato)
+  const hangzhouArea = {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "nome": "Area di Hangzhou (approssimata)",
+          "fonte": "Disegno interpretativo in geojson.io"
+        },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [120.21625293159451, 30.26418535385153],
+              [120.19313574025131, 30.522891336117723],
+              [119.90029545744835, 30.389333945921564],
+              [119.92324584507963, 30.17126152213747],
+              [120.21625293159451, 30.26418535385153]
+            ]
+          ]
+        }
+      }
+    ]
+  };
+
+  // Disegno del poligono
+  L.geoJSON(hangzhouArea, {
+    style: {
+      color: "#b00020",
+      weight: 2,
+      fillOpacity: 0.2
+    },
+    onEachFeature: (feature, layer) => {
+      layer.bindPopup(
+        `<strong>${feature.properties.nome}</strong><br/>
+         ${feature.properties.fonte}`
+      );
+    }
+  }).addTo(map);
+</script>
 </body>
 </html>
