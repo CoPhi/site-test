@@ -59,10 +59,13 @@
 
     const map = L.map("map").setView([firstValid.lat, firstValid.lon], 6);
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 18,
-      attribution: "&copy; OpenStreetMap contributors"
-    }).addTo(map);
+    L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png",
+      {
+        attribution: "&copy; OpenStreetMap &copy; CARTO",
+        maxZoom: 18
+      }
+    ).addTo(map);
 
     // === 3) MARKERS =========================================================
     const bounds = [];
