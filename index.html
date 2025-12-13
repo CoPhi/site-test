@@ -1,13 +1,12 @@
 <!doctype html>
-<html lang="en">
+<html lang="it">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>CHGIS static map demo</title>
+  <title>Mappa pulita + GeoJSON (Hangzhou)</title>
 
-  <!-- Leaflet (no install, CDN) -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
 
   <style>
     body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
@@ -19,57 +18,92 @@
 
 <body>
   <header>
-    <div><strong>CHGIS static map</strong></div>
-    <div class="meta">One-file version (no fetch). Markers from CHGIS coordinates.</div>
+    <strong>Mappa pulita + poligono (GeoJSON)</strong>
+    <div class="meta">Basemap senza etichette; layer interpretativo per Hangzhou</div>
   </header>
 
   <div id="map"></div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 
   <script>
-  // GeoJSON incollato direttamente (come dato)
-  const hangzhouArea = {
-    "type": "FeatureCollection",
-    "features": [
-      {
-        "type": "Feature",
-        "properties": {
-          "nome": "Area di Hangzhou (approssimata)",
-          "fonte": "Disegno interpretativo in geojson.io"
-        },
-        "geometry": {
-          "type": "Polygon",
-          "coordinates": [
-            [
-              [120.21625293159451, 30.26418535385153],
+    // 1) Inizializzazione mappa (centro Cina orientale; poi faremo fitBounds)
+    const map = L.map("map").setView([33, 115], 5);
+
+    // 2) Basemap “muta” (senza etichette)
+    L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png",
+      { attribution: "&copy; OpenStreetMap &copy; CARTO", maxZoom: 18 }
+    ).addTo(map);
+
+    // 3) Marker: Hangzhou (centro di riferimento; coordinata CHGIS)
+    const hangzhou = {
+      id: "hvd_32338",
+      nome: "Hangzhou (杭州路)",
+      periodo: "1278–1365",
+      lat: 30.29412,
+      lon: 120.16862,
+      nota: "Hangzhou Lu (Yuan). Rilevante per Quinsai in Marco Polo."
+    };
+
+    const markerHangzhou = L.marker([hangzhou.lat, hangzhou.lon])
+      .addTo(map)
+      .bindPopup(
+        `<strong>${hangzhou.nome}</strong><br/>
+         <em>${hangzhou.periodo}</em><br/><br/>
+         ${hangzhou.nota}<br/>
+         <span style="font-size:12px;color:#666">ID: ${hangzhou.id}</span>`
+      );
+
+    // 4) Poligono: GeoJSON disegnato in geojson.io
+    // NOTA: in GeoJSON le coordinate sono [lon, lat]
+    const hangzhouArea = {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "properties": {
+            "nome": "Area di Hangzhou (approssimata)",
+            "fonte": "Disegno interpretativo in geojson.io",
+            "nota": "Poligono non-CHGIS: serve a formalizzare un’area a fini didattici."
+          },
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [[
               [120.19313574025131, 30.522891336117723],
               [119.90029545744835, 30.389333945921564],
               [119.92324584507963, 30.17126152213747],
-              [120.21625293159451, 30.26418535385153]
-            ]
-          ]
+              [120.29068536603722, 30.17126152213747],
+              [120.19313574025131, 30.522891336117723]
+            ]]
+          }
         }
-      }
-    ]
-  };
+      ]
+    };
 
-  // Disegno del poligono
-  L.geoJSON(hangzhouArea, {
-    style: {
-      color: "#b00020",
-      weight: 2,
-      fillOpacity: 0.2
-    },
-    onEachFeature: (feature, layer) => {
-      layer.bindPopup(
-        `<strong>${feature.properties.nome}</strong><br/>
-         ${feature.properties.fonte}`
-      );
-    }
-  }).addTo(map);
-</script>
+    // 5) Aggiunta del GeoJSON alla mappa
+    const polygonLayer = L.geoJSON(hangzhouArea, {
+      style: {
+        color: "#b00020",
+        weight: 2,
+        fillColor: "#b00020",
+        fillOpacity: 0.20
+      },
+      onEachFeature: (feature, layer) => {
+        const p = feature.properties || {};
+        layer.bindPopup(
+          `<strong>${p.nome ?? "Area"}</strong><br/>
+           <em>${p.fonte ?? ""}</em><br/><br/>
+           ${p.nota ?? ""}`
+        );
+      }
+    }).addTo(map);
+
+    // 6) Zoom automatico: include poligono + marker
+    const bounds = polygonLayer.getBounds();
+    bounds.extend([hangzhou.lat, hangzhou.lon]);
+    map.fitBounds(bounds, { padding: [20, 20] });
+  </script>
 </body>
 </html>
