@@ -33,9 +33,12 @@
 
     // 2) Basemap “muta” (senza etichette)
     L.tileLayer(
-      "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png",
-      { attribution: "&copy; OpenStreetMap &copy; CARTO", maxZoom: 18 }
-    ).addTo(map);
+  "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
+  {
+    attribution: "&copy; OpenStreetMap contributors, OpenTopoMap",
+    maxZoom: 17
+  }
+).addTo(map);
 
     // 3) Marker: Hangzhou (centro di riferimento; coordinata CHGIS)
     const hangzhou = {
