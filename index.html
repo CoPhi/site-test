@@ -1,12 +1,92 @@
-<html>
-  <head>
-    <title>Test</title>
-  </head>
-  <body>
-    <div>
-      <p>
-        <h1>This is a test</h1>
-      </p>
-    </div>
-  </body>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CHGIS static map demo</title>
+
+  <!-- Leaflet (no install, CDN) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
+  <style>
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    header { padding: 10px 14px; border-bottom: 1px solid #ddd; }
+    #map { height: calc(100vh - 60px); }
+    .meta { color: #555; font-size: 14px; }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div><strong>CHGIS static map</strong></div>
+    <div class="meta">One-file version (no fetch). Markers from CHGIS coordinates.</div>
+  </header>
+
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <script>
+    // === 1) DATA: edit only this list =======================================
+    const places = [
+      {
+        id: "hvd_32338",
+        name_zh: "杭州路",
+        name_en: "Hangzhou Lu (Circuit)",
+        begin: 1278,
+        end: 1365,
+        lon: 120.16862,
+        lat: 30.29412,
+        note: "Yuan administrative unit (relevant to Marco Polo’s Quinsai)."
+      },
+      // Add more CHGIS points here:
+      // { id:"...", name_zh:"...", name_en:"...", begin:..., end:..., lon:..., lat:..., note:"..." },
+    ];
+    // =======================================================================
+
+    // === 2) MAP =============================================================
+    const firstValid = places.find(p =>
+      Number.isFinite(p.lon) && Number.isFinite(p.lat) && p.lon !== 0 && p.lat !== 0
+    );
+
+    if (!firstValid) {
+      document.getElementById("map").innerHTML =
+        "<p style='padding:14px'>No valid coordinates found. Add at least one place with lon/lat ≠ 0.</p>";
+      throw new Error("No valid coordinates.");
+    }
+
+    const map = L.map("map").setView([firstValid.lat, firstValid.lon], 6);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: "&copy; OpenStreetMap contributors"
+    }).addTo(map);
+
+    // === 3) MARKERS =========================================================
+    const bounds = [];
+
+    for (const p of places) {
+      if (!Number.isFinite(p.lon) || !Number.isFinite(p.lat) || p.lon === 0 || p.lat === 0) continue;
+
+      const label = `${p.name_zh} / ${p.name_en}`;
+      const years = `${p.begin}–${p.end}`;
+      const popup = `
+        <div style="line-height:1.25">
+          <div><strong>${label}</strong></div>
+          <div>${years}</div>
+          <div style="margin-top:6px">${p.note ?? ""}</div>
+          <div style="margin-top:6px; color:#666; font-size:12px">CHGIS id: ${p.id}</div>
+        </div>
+      `;
+
+      L.marker([p.lat, p.lon]).addTo(map).bindPopup(popup);
+      bounds.push([p.lat, p.lon]);
+    }
+
+    if (bounds.length > 1) map.fitBounds(bounds, { padding: [20, 20] });
+  </script>
+</body>
 </html>
+
