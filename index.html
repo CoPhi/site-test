@@ -1,12 +1,13 @@
 <!doctype html>
-<html lang="it">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Mappa pulita + GeoJSON (Hangzhou)</title>
+  <title>CHGIS static map demo</title>
 
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <!-- Leaflet (no install, CDN) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 
   <style>
     body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
@@ -18,95 +19,73 @@
 
 <body>
   <header>
-    <strong>Mappa pulita + poligono (GeoJSON)</strong>
-    <div class="meta">Basemap senza etichette; layer interpretativo per Hangzhou</div>
+    <div><strong>CHGIS static map</strong></div>
+    <div class="meta">One-file version (no fetch). Markers from CHGIS coordinates.</div>
   </header>
 
   <div id="map"></div>
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
   <script>
-    // 1) Inizializzazione mappa (centro Cina orientale; poi faremo fitBounds)
-    const map = L.map("map").setView([33, 115], 5);
-
-    // 2) Basemap “muta” (senza etichette)
-    L.tileLayer(
-  "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png",
-  {
-    attribution: "&copy; OpenStreetMap contributors, OpenTopoMap",
-    maxZoom: 17
-  }
-).addTo(map);
-
-    // 3) Marker: Hangzhou (centro di riferimento; coordinata CHGIS)
-    const hangzhou = {
-      id: "hvd_32338",
-      nome: "Hangzhou (杭州路)",
-      periodo: "1278–1365",
-      lat: 30.29412,
-      lon: 120.16862,
-      nota: "Hangzhou Lu (Yuan). Rilevante per Quinsai in Marco Polo."
-    };
-
-    const markerHangzhou = L.marker([hangzhou.lat, hangzhou.lon])
-      .addTo(map)
-      .bindPopup(
-        `<strong>${hangzhou.nome}</strong><br/>
-         <em>${hangzhou.periodo}</em><br/><br/>
-         ${hangzhou.nota}<br/>
-         <span style="font-size:12px;color:#666">ID: ${hangzhou.id}</span>`
-      );
-
-    // 4) Poligono: GeoJSON disegnato in geojson.io
-    // NOTA: in GeoJSON le coordinate sono [lon, lat]
-    const hangzhouArea = {
-      "type": "FeatureCollection",
-      "features": [
-        {
-          "type": "Feature",
-          "properties": {
-            "nome": "Area di Hangzhou (approssimata)",
-            "fonte": "Disegno interpretativo in geojson.io",
-            "nota": "Poligono non-CHGIS: serve a formalizzare un’area a fini didattici."
-          },
-          "geometry": {
-            "type": "Polygon",
-            "coordinates": [[
-              [120.19313574025131, 30.522891336117723],
-              [119.90029545744835, 30.389333945921564],
-              [119.92324584507963, 30.17126152213747],
-              [120.29068536603722, 30.17126152213747],
-              [120.19313574025131, 30.522891336117723]
-            ]]
-          }
-        }
-      ]
-    };
-
-    // 5) Aggiunta del GeoJSON alla mappa
-    const polygonLayer = L.geoJSON(hangzhouArea, {
-      style: {
-        color: "#b00020",
-        weight: 2,
-        fillColor: "#b00020",
-        fillOpacity: 0.20
+    // === 1) DATA: edit only this list =======================================
+    const places = [
+      {
+        id: "hvd_32338",
+        name_zh: "杭州路",
+        name_en: "Hangzhou Lu (Circuit)",
+        begin: 1278,
+        end: 1365,
+        lon: 120.16862,
+        lat: 30.29412,
+        note: "Yuan administrative unit (relevant to Marco Polo’s Quinsai)."
       },
-      onEachFeature: (feature, layer) => {
-        const p = feature.properties || {};
-        layer.bindPopup(
-          `<strong>${p.nome ?? "Area"}</strong><br/>
-           <em>${p.fonte ?? ""}</em><br/><br/>
-           ${p.nota ?? ""}`
-        );
-      }
+      // Add more CHGIS points here:
+      // { id:"...", name_zh:"...", name_en:"...", begin:..., end:..., lon:..., lat:..., note:"..." },
+    ];
+    // =======================================================================
+
+    // === 2) MAP =============================================================
+    const firstValid = places.find(p =>
+      Number.isFinite(p.lon) && Number.isFinite(p.lat) && p.lon !== 0 && p.lat !== 0
+    );
+
+    if (!firstValid) {
+      document.getElementById("map").innerHTML =
+        "<p style='padding:14px'>No valid coordinates found. Add at least one place with lon/lat ≠ 0.</p>";
+      throw new Error("No valid coordinates.");
+    }
+
+    const map = L.map("map").setView([firstValid.lat, firstValid.lon], 6);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: "&copy; OpenStreetMap contributors"
     }).addTo(map);
 
-    // 6) Zoom automatico: include poligono + marker
-    const bounds = polygonLayer.getBounds();
-    bounds.extend([hangzhou.lat, hangzhou.lon]);
-    map.fitBounds(bounds, { padding: [20, 20] });
+    // === 3) MARKERS =========================================================
+    const bounds = [];
+
+    for (const p of places) {
+      if (!Number.isFinite(p.lon) || !Number.isFinite(p.lat) || p.lon === 0 || p.lat === 0) continue;
+
+      const label = `${p.name_zh} / ${p.name_en}`;
+      const years = `${p.begin}–${p.end}`;
+      const popup = `
+        <div style="line-height:1.25">
+          <div><strong>${label}</strong></div>
+          <div>${years}</div>
+          <div style="margin-top:6px">${p.note ?? ""}</div>
+          <div style="margin-top:6px; color:#666; font-size:12px">CHGIS id: ${p.id}</div>
+        </div>
+      `;
+
+      L.marker([p.lat, p.lon]).addTo(map).bindPopup(popup);
+      bounds.push([p.lat, p.lon]);
+    }
+
+    if (bounds.length > 1) map.fitBounds(bounds, { padding: [20, 20] });
   </script>
 </body>
 </html>
