@@ -14,13 +14,19 @@
     header { padding: 10px 14px; border-bottom: 1px solid #ddd; }
     #map { height: calc(100vh - 60px); }
     .meta { color: #555; font-size: 14px; }
+
+    /* Optional: keep popups tidy */
+    .popup-title { font-weight: 700; margin-bottom: 4px; }
+    .popup-years { color: #444; margin-bottom: 6px; }
+    .popup-note { margin-top: 6px; }
+    .popup-id { margin-top: 6px; color:#666; font-size:12px; }
   </style>
 </head>
 
 <body>
   <header>
     <div><strong>CHGIS static map</strong></div>
-    <div class="meta">One-file version (no fetch). Markers from CHGIS coordinates.</div>
+    <div class="meta">One-file version (no fetch). Points and routes as GeoJSON.</div>
   </header>
 
   <div id="map"></div>
@@ -30,93 +36,171 @@
 
   <script>
     // === 1) DATA: edit only this list =======================================
-    const places = [
-      {
-        id: "hvd_32338",
-        name_zh: "杭州路",
-        name_en: "Hangzhou Lu (Circuit)",
-        begin: 1278,
-        end: 1365,
-        lon: 120.16862,
-        lat: 30.29412,
-        note: "Yuan administrative unit (relevant to Marco Polo’s Quinsai)."
-      },     {
-      name_en :   "Suzhou",
-      "type": "Feature",
-      "properties": {
-        "color": "red"
-      },
-      "geometry": {
-        "coordinates": [
-          120.65945720856604,
-          31.322005589116202
-        ],
-        "type": "Point"
-      },
-      "id": 1
-    },
-    {
-      "type": "Feature",
-      "properties": {},
-      "geometry": {
-        "coordinates": [
-          [
-            120.66497514355439,
-            31.3060073208365
-          ],
-          [
-            120.2131301704066,
-            30.24346788134801
-          ]
-        ],
-        "type": "LineString"
-      }
-    }
-      // Add more CHGIS points here:
-      // { id:"...", name_zh:"...", name_en:"...", begin:..., end:..., lon:..., lat:..., note:"..." },
-    ];
+    // Refactoring: a single GeoJSON FeatureCollection containing BOTH places (Point)
+    // and connections (LineString). Leaflet will render both from one source.
+    const chgisGeoJSON = {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          id: "hvd_32338",
+          properties: {
+            id: "hvd_32338",
+            feature_kind: "place",
+            name_zh: "杭州路",
+            name_en: "Hangzhou Lu (Circuit)",
+            begin: 1278,
+            end: 1365,
+            note: "Yuan administrative unit (relevant to Marco Polo’s Quinsai).",
+            color: "red"
+          },
+          geometry: {
+            type: "Point",
+            coordinates: [120.16862, 30.29412] // [lon, lat]
+          }
+        },
+        {
+          type: "Feature",
+          id: "chgis_suzhou_1",
+          properties: {
+            id: "chgis_suzhou_1",
+            feature_kind: "place",
+            name_zh: "苏州",
+            name_en: "Suzhou",
+            color: "red"
+          },
+          geometry: {
+            type: "Point",
+            coordinates: [120.65945720856604, 31.322005589116202]
+          }
+        },
+        {
+          type: "Feature",
+          id: "route_1",
+          properties: {
+            id: "route_1",
+            feature_kind: "route",
+            name_en: "Connection",
+            color: "red",
+            weight: 3,
+            opacity: 0.85
+          },
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [120.66497514355439, 31.3060073208365],
+              [120.2131301704066, 30.24346788134801]
+            ]
+          }
+        }
+
+        // Add more here (Points or LineStrings):
+        // {
+        //   type:"Feature",
+        //   id:"...",
+        //   properties:{ feature_kind:"place", name_zh:"...", name_en:"...", begin:..., end:..., note:"...", color:"red" },
+        //   geometry:{ type:"Point", coordinates:[lon,lat] }
+        // },
+        // {
+        //   type:"Feature",
+        //   id:"route_...",
+        //   properties:{ feature_kind:"route", name_en:"...", color:"red", weight:3, opacity:0.8 },
+        //   geometry:{ type:"LineString", coordinates:[[lon,lat],[lon,lat]] }
+        // }
+      ]
+    };
     // =======================================================================
 
     // === 2) MAP =============================================================
-    const firstValid = places.find(p =>
-      Number.isFinite(p.lon) && Number.isFinite(p.lat) && p.lon !== 0 && p.lat !== 0
-    );
-
-    if (!firstValid) {
-      document.getElementById("map").innerHTML =
-        "<p style='padding:14px'>No valid coordinates found. Add at least one place with lon/lat ≠ 0.</p>";
-      throw new Error("No valid coordinates.");
-    }
-
-    const map = L.map("map").setView([firstValid.lat, firstValid.lon], 6);
+    const map = L.map("map");
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 18,
       attribution: "&copy; OpenStreetMap contributors"
     }).addTo(map);
 
-    // === 3) MARKERS =========================================================
-    const bounds = [];
-
-    for (const p of places) {
-      if (!Number.isFinite(p.lon) || !Number.isFinite(p.lat) || p.lon === 0 || p.lat === 0) continue;
-
-      const label = `${p.name_zh} / ${p.name_en}`;
-      const years = `${p.begin}–${p.end}`;
-      const popup = `
-        <div style="line-height:1.25">
-          <div><strong>${label}</strong></div>
-          <div>${years}</div>
-          <div style="margin-top:6px">${p.note ?? ""}</div>
-          <div style="margin-top:6px; color:#666; font-size:12px">CHGIS id: ${p.id}</div>
-        </div>
-      `;
-
-      L.marker([p.lat, p.lon]).addTo(map).bindPopup(popup);
-      bounds.push([p.lat, p.lon]);
+    // Helper: safe year label
+    function formatYears(props) {
+      const b = props.begin;
+      const e = props.end;
+      if (Number.isFinite(b) && Number.isFinite(e)) return `${b}–${e}`;
+      if (Number.isFinite(b) && !Number.isFinite(e)) return `${b}–`;
+      if (!Number.isFinite(b) && Number.isFinite(e)) return `–${e}`;
+      return "";
     }
 
-    if (bounds.length > 1) map.fitBounds(bounds, { padding: [20, 20] });
+    // Style for lines (routes)
+    function lineStyle(feature) {
+      const p = feature.properties || {};
+      return {
+        color: p.color || "red",
+        weight: Number.isFinite(p.weight) ? p.weight : 3,
+        opacity: Number.isFinite(p.opacity) ? p.opacity : 0.85
+      };
+    }
+
+    // Render points and lines from GeoJSON
+    const layer = L.geoJSON(chgisGeoJSON, {
+      style: (feature) => (feature.geometry && feature.geometry.type !== "Point") ? lineStyle(feature) : undefined,
+
+      pointToLayer: (feature, latlng) => {
+        const p = feature.properties || {};
+        // Use circle markers for easy styling (and no extra icon assets)
+        return L.circleMarker(latlng, {
+          radius: 6,
+          color: p.color || "red",
+          weight: 2,
+          fillColor: p.color || "red",
+          fillOpacity: 0.6
+        });
+      },
+
+      onEachFeature: (feature, layer) => {
+        const p = feature.properties || {};
+        const kind = p.feature_kind || "";
+
+        if (kind === "place") {
+          const title = [p.name_zh, p.name_en].filter(Boolean).join(" / ");
+          const years = formatYears(p);
+          const note = p.note ? `<div class="popup-note">${p.note}</div>` : "";
+          const id = p.id || feature.id || "";
+
+          const popup = `
+            <div style="line-height:1.25">
+              <div class="popup-title">${title || "Place"}</div>
+              ${years ? `<div class="popup-years">${years}</div>` : ""}
+              ${note}
+              ${id ? `<div class="popup-id">CHGIS id: ${id}</div>` : ""}
+            </div>
+          `;
+          layer.bindPopup(popup);
+        } else if (kind === "route") {
+          const label = p.name_en || "Route";
+          const id = p.id || feature.id || "";
+          const popup = `
+            <div style="line-height:1.25">
+              <div class="popup-title">${label}</div>
+              ${id ? `<div class="popup-id">id: ${id}</div>` : ""}
+            </div>
+          `;
+          layer.bindPopup(popup);
+        }
+      }
+    }).addTo(map);
+
+    // Fit map to all geometries (points + routes)
+    const bounds = layer.getBounds();
+    if (bounds && bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [20, 20] });
+    } else {
+      // Fallback (should be rare)
+      map.setView([30.0, 120.0], 6);
+      document.getElementById("map").insertAdjacentHTML(
+        "afterbegin",
+        "<p style='padding:14px'>No valid geometries found. Add at least one feature with valid coordinates.</p>"
+      );
+    }
   </script>
 </body>
 </html>
+
