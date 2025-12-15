@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Chinese Dynasties Timeline (offline single-file)</title>
+<style>
+  :root { --bg:#ffffff; --panel:#f6f7f9; --ink:#1a1a1a; --muted:#555555; --accent:#2f5fff; --line:#d0d4dd; }
+  html,body{height:100%;}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.35 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;}
+  header{padding:18px 20px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--panel),#ffffff);}
+  h1{margin:0 0 6px 0;font-size:18px;font-weight:700;}
+  .sub{color:var(--muted);max-width:80ch}
+  .wrap{display:grid;grid-template-columns: 1fr 320px;gap:14px;padding:14px;align-items:start;}
+  @media (max-width: 980px){ .wrap{grid-template-columns:1fr;} }
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,.25);}
+  .controls{padding:14px;}
+  .controls label{display:block;margin:10px 0 6px;color:var(--muted);}
+  input[type="range"]{width:100%;}
+  .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+  button{cursor:pointer;border:1px solid var(--line);background:#ffffff;color:var(--ink);padding:8px 10px;border-radius:10px}
+  button:hover{border-color:#3b4664}
+  .main{padding:10px 10px 14px;}
+  .timelineShell{padding:10px;}
+  .hint{color:var(--muted);padding:0 10px 10px}
+  .legend{display:flex;gap:10px;flex-wrap:wrap;padding:0 10px 10px}
+  .tag{font-size:12px;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:4px 8px}
+  .side{padding:14px;}
+  .side h2{margin:0 0 8px;font-size:15px}
+  .side .box{border:1px dashed var(--line);border-radius:12px;padding:12px;background:#ffffff}
+  .side .k{color:var(--muted);font-size:12px;margin-top:10px}
+  .side .headline{font-weight:700;margin:2px 0 6px}
+  .side .period{color:var(--muted);font-variant-numeric:tabular-nums}
+  .side .text{color:var(--ink);opacity:.95}
+  .foot{padding:12px 20px;color:var(--muted);border-top:1px solid var(--line);}
+  svg{width:100%;height:auto;display:block;}
+  .axis text{fill:var(--muted);font-size:11px}
+  .axis line{stroke:var(--line);stroke-width:1}
+  .band{cursor:pointer}
+  .band rect{rx:9;ry:9;stroke:rgba(255,255,255,.10);stroke-width:1}
+  .band text{fill:var(--ink);font-size:12px;pointer-events:none}
+  .band .years{fill:rgba(255,255,255,.7);font-size:11px}
+  .band:hover rect{stroke:rgba(122,162,255,.7)}
+  .band.active rect{stroke:var(--accent);stroke-width:2}
+  .tooltip{position:fixed;pointer-events:none;z-index:50;background:#ffffff;border:1px solid var(--line);color:var(--ink);
+           padding:8px 10px;border-radius:10px;box-shadow:0 16px 40px rgba(0,0,0,.35);max-width:min(360px, calc(100vw - 24px));}
+  .tooltip .t{font-weight:700;margin-bottom:2px}
+  .tooltip .p{color:var(--muted);font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+<header>
+  <h1>Chinese dynasties timeline (offline, single HTML)</h1>
+  <div class="sub">
+    This is a self-contained timeline rendered in vanilla JS (no external libraries, no web requests).
+    Drag the zoom, pan horizontally, and click a dynasty band to read details.
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="card main">
+    <div class="controls">
+      <label for="zoom">Zoom (pixels per year)</label>
+      <input id="zoom" type="range" min="0.6" max="6" step="0.1" value="2.2" />
+      <div class="btnrow">
+        <button id="fit">Fit to window</button>
+        <button id="reset">Reset view</button>
+        <button id="toggleBCE">Show BCE labels: on</button>
+      </div>
+    </div>
+
+    <div class="timelineShell">
+      <div class="legend">
+        <span class="tag">BCE/CE supported</span>
+        <span class="tag">Scroll to pan</span>
+        <span class="tag">Click to focus</span>
+      </div>
+      <div class="hint">Tip: on a trackpad, two-finger scroll pans the timeline. On a mouse, use Shift+wheel for horizontal pan.</div>
+      <div id="viewport" class="card" style="border-radius:12px; overflow:auto; border:1px solid var(--line);">
+        <div id="stage" style="min-width:900px;">
+          <!-- svg injected here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="card side">
+    <h2>Details</h2>
+    <div class="box" id="details">
+      <div class="headline">Click a dynasty…</div>
+      <div class="period">You’ll see dates, duration, and a short note here.</div>
+      <div class="k">Keyboard: <b>Esc</b> clears selection.</div>
+    </div>
+  </aside>
+</div>
+
+<div class="foot">
+  Data scope: major dynasties from Xia to Qing (traditional chronology). Years are approximate for early periods.
+</div>
+
+<script>
+/**
+ * Offline "TimelineJS-style" renderer.
+ * Single-file, no network, no dependencies.
+ * (If you truly need KnightLab TimelineJS offline, you'd have to bundle its JS/CSS/assets locally;
+ * many browsers will block remote loads when offline.)
+ */
+
+const DYNASTIES = [
+  { name:"Xia", start:-2070, end:-1600, era:"Early", note:"Traditionally the first dynasty; early chronology is partly legendary/archaeological debate." },
+  { name:"Shang", start:-1600, end:-1046, era:"Early", note:"Bronze Age; oracle bone inscriptions." },
+  { name:"Zhou (Western)", start:-1046, end:-771, era:"Early", note:"Feudal polity; classical ritual and political vocabulary crystallize." },
+  { name:"Zhou (Eastern)", start:-770, end:-256, era:"Early", note:"Includes Spring and Autumn and Warring States periods." },
+  { name:"Qin", start:-221, end:-206, era:"Imperial", note:"First imperial unification; standardization policies; short-lived." },
+  { name:"Han (Western)", start:-202, end:9, era:"Imperial", note:"Consolidation of imperial institutions; Silk Road networks expand." },
+  { name:"Xin", start:9, end:23, era:"Interregnum", note:"Wang Mang’s short dynasty between Western and Eastern Han." },
+  { name:"Han (Eastern)", start:25, end:220, era:"Imperial", note:"Restoration of Han; later fragmentation." },
+  { name:"Three Kingdoms", start:220, end:280, era:"Fragmentation", note:"Wei, Shu, Wu; a tripartite political landscape." },
+  { name:"Jin (Western)", start:265, end:316, era:"Fragmentation", note:"Reunification (280) followed by instability and court flight." },
+  { name:"Jin (Eastern)", start:317, end:420, era:"Fragmentation", note:"Southern court; northern polities fluctuate." },
+  { name:"Sui", start:581, end:618, era:"Imperial", note:"Reunification; Grand Canal; short but pivotal." },
+  { name:"Tang", start:618, end:907, era:"Imperial", note:"Cosmopolitan empire; poetry, administration, and trade flourish." },
+  { name:"Five Dynasties & Ten Kingdoms", start:907, end:960, era:"Fragmentation", note:"Political plurality after Tang, before Song consolidation." },
+  { name:"Song (Northern)", start:960, end:1127, era:"Imperial", note:"Strong bureaucracy and economy; pressures on northern frontier." },
+  { name:"Liao", start:916, end:1125, era:"Frontier", note:"Khitan dynasty in the north; coexisted with Song." },
+  { name:"Jin (Jurchen)", start:1115, end:1234, era:"Frontier", note:"Jurchen rule over much of northern China." },
+  { name:"Song (Southern)", start:1127, end:1279, era:"Imperial", note:"Southern court; maritime trade and urban culture." },
+  { name:"Yuan", start:1271, end:1368, era:"Imperial", note:"Mongol dynasty; vast Eurasian connections." },
+  { name:"Ming", start:1368, end:1644, era:"Imperial", note:"Maritime expeditions early on; later internal and external pressures." },
+  { name:"Qing", start:1636, end:1912, era:"Imperial", note:"Manchu-led dynasty; last imperial house." },
+];
+
+const COLORS = {
+  "Early": "#7aa2ff",
+  "Imperial": "#5bd6c5",
+  "Fragmentation": "#ffb86b",
+  "Interregnum": "#ff6b97",
+  "Frontier": "#c792ea",
+  "Other": "#9aa3b2"
+};
+
+const state = {
+  pxPerYear: parseFloat(document.querySelector("#zoom").value),
+  showBCELabels: true,
+  selected: null
+};
+
+const viewport = document.querySelector("#viewport");
+const stage = document.querySelector("#stage");
+const details = document.querySelector("#details");
+const zoomEl = document.querySelector("#zoom");
+const toggleBCEBtn = document.querySelector("#toggleBCE");
+
+function fmtYear(y){
+  if (y < 0) return state.showBCELabels ? `${Math.abs(y)} BCE` : `${y}`;
+  return `${y}`;
+}
+
+function duration(start, end){
+  // inclusive-ish display
+  return Math.max(0, end - start);
+}
+
+function bounds(){
+  const min = Math.min(...DYNASTIES.map(d => d.start));
+  const max = Math.max(...DYNASTIES.map(d => d.end));
+  return {min, max};
+}
+
+function build(){
+  const {min, max} = bounds();
+  const padYears = 60; // visual breathing room
+  const startY = min - padYears;
+  const endY = max + padYears;
+
+  const width = Math.max(900, (endY - startY) * state.pxPerYear);
+  const rowH = 34;
+  const topPad = 44;
+  const leftPad = 18;
+  const rightPad = 18;
+  const height = topPad + DYNASTIES.length * rowH + 22;
+
+  stage.style.minWidth = width + "px";
+
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+
+  // axis group
+  const axisG = document.createElementNS(svgNS, "g");
+  axisG.setAttribute("class","axis");
+  svg.appendChild(axisG);
+
+  // ticks every N years depending on zoom
+  const tickStep = state.pxPerYear < 1.4 ? 200 : state.pxPerYear < 2.4 ? 100 : state.pxPerYear < 4 ? 50 : 25;
+
+  for (let y = Math.ceil(startY / tickStep) * tickStep; y <= endY; y += tickStep){
+    const x = leftPad + (y - startY) * state.pxPerYear;
+    const line = document.createElementNS(svgNS, "line");
+    line.setAttribute("x1", x);
+    line.setAttribute("x2", x);
+    line.setAttribute("y1", topPad - 26);
+    line.setAttribute("y2", height - 10);
+    line.setAttribute("opacity", y % (tickStep*2) === 0 ? "0.9" : "0.45");
+    axisG.appendChild(line);
+
+    const txt = document.createElementNS(svgNS, "text");
+    txt.setAttribute("x", x + 4);
+    txt.setAttribute("y", 18);
+    txt.textContent = fmtYear(y);
+    axisG.appendChild(txt);
+  }
+
+  // bands
+  DYNASTIES.forEach((d, i) => {
+    const g = document.createElementNS(svgNS, "g");
+    g.setAttribute("class", "band" + (state.selected === d.name ? " active" : ""));
+    const y = topPad + i * rowH;
+
+    const x1 = leftPad + (d.start - startY) * state.pxPerYear;
+    const x2 = leftPad + (d.end - startY) * state.pxPerYear;
+    const w = Math.max(8, x2 - x1);
+
+    const rect = document.createElementNS(svgNS, "rect");
+    rect.setAttribute("x", x1);
+    rect.setAttribute("y", y);
+    rect.setAttribute("width", w);
+    rect.setAttribute("height", 28);
+    rect.setAttribute("fill", (COLORS[d.era] || COLORS.Other));
+    rect.setAttribute("fill-opacity", "0.78");
+    g.appendChild(rect);
+
+    // single text element with tspans (no overlap)
+    const label = document.createElementNS(svgNS, "text");
+    label.setAttribute("x", x1 + 10);
+    label.setAttribute("y", y + 18);
+
+    const tName = document.createElementNS(svgNS, "tspan");
+    tName.textContent = d.name;
+
+    const tYears = document.createElementNS(svgNS, "tspan");
+    tYears.setAttribute("class", "years");
+    tYears.setAttribute("dx", "8"); // space after name
+    tYears.textContent = `${fmtYear(d.start)}–${fmtYear(d.end)} · ${duration(d.start, d.end)} yrs`;
+
+    label.appendChild(tName);
+    label.appendChild(tYears);
+    g.appendChild(label);
+
+    g.addEventListener("click", () => select(d.name));
+    g.addEventListener("mousemove", (ev) => showTip(ev, d));
+    g.addEventListener("mouseleave", hideTip);
+
+    svg.appendChild(g);
+  });
+
+  // install
+  stage.innerHTML = "";
+  stage.appendChild(svg);
+
+  // after rebuild: keep scroll center roughly stable
+  // (handled outside)
+}
+
+let tooltip = null;
+function showTip(ev, d){
+  if (!tooltip){
+    tooltip = document.createElement("div");
+    tooltip.className = "tooltip";
+    document.body.appendChild(tooltip);
+  }
+  tooltip.innerHTML = `<div class="t">${d.name}</div>
+                       <div class="p">${fmtYear(d.start)} → ${fmtYear(d.end)} · ${duration(d.start,d.end)} yrs · ${d.era}</div>`;
+  const pad = 14;
+  const x = Math.min(window.innerWidth - pad, ev.clientX + 14);
+  const y = Math.min(window.innerHeight - pad, ev.clientY + 14);
+  tooltip.style.left = x + "px";
+  tooltip.style.top = y + "px";
+  tooltip.style.display = "block";
+}
+function hideTip(){
+  if (tooltip) tooltip.style.display = "none";
+}
+
+function select(name){
+  state.selected = name;
+  const d = DYNASTIES.find(x => x.name === name);
+  if (!d) return;
+
+  details.innerHTML = `
+    <div class="headline">${d.name}</div>
+    <div class="period">${fmtYear(d.start)} → ${fmtYear(d.end)} · <b>${duration(d.start, d.end)}</b> years · <span style="color:var(--muted)">${d.era}</span></div>
+    <div class="text" style="margin-top:10px">${d.note}</div>
+    <div class="k">Tip: use the zoom slider to inspect overlaps (e.g., Song/Liao/Jin).</div>
+  `;
+
+  // scroll to center selected band
+  const {min} = bounds();
+  const padYears = 60;
+  const startY = min - padYears;
+  const dMid = (d.start + d.end) / 2;
+  const xMid = 18 + (dMid - startY) * state.pxPerYear;
+  viewport.scrollLeft = Math.max(0, xMid - viewport.clientWidth / 2);
+
+  // rebuild to update active stroke
+  build();
+}
+
+function clearSelection(){
+  state.selected = null;
+  details.innerHTML = `<div class="headline">Click a dynasty…</div>
+    <div class="period">You’ll see dates, duration, and a short note here.</div>
+    <div class="k">Keyboard: <b>Esc</b> clears selection.</div>`;
+  build();
+}
+
+function fitToWindow(){
+  const {min, max} = bounds();
+  const padYears = 120;
+  const span = (max - min) + padYears*2;
+  const target = Math.max(0.6, Math.min(6, (viewport.clientWidth - 60) / span));
+  state.pxPerYear = target;
+  zoomEl.value = target.toFixed(1);
+  build();
+  viewport.scrollLeft = 0;
+}
+
+function resetView(){
+  state.pxPerYear = 2.2;
+  zoomEl.value = "2.2";
+  viewport.scrollLeft = 0;
+  clearSelection();
+}
+
+zoomEl.addEventListener("input", () => {
+  // keep center year stable while zooming
+  const centerPx = viewport.scrollLeft + viewport.clientWidth / 2;
+  const {min} = bounds();
+  const startY = (min - 60);
+  const centerYear = startY + (centerPx - 18) / state.pxPerYear;
+
+  state.pxPerYear = parseFloat(zoomEl.value);
+  build();
+
+  const newCenterPx = 18 + (centerYear - startY) * state.pxPerYear;
+  viewport.scrollLeft = Math.max(0, newCenterPx - viewport.clientWidth / 2);
+});
+
+document.querySelector("#fit").addEventListener("click", fitToWindow);
+document.querySelector("#reset").addEventListener("click", resetView);
+toggleBCEBtn.addEventListener("click", () => {
+  state.showBCELabels = !state.showBCELabels;
+  toggleBCEBtn.textContent = `Show BCE labels: ${state.showBCELabels ? "on" : "off"}`;
+  build();
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") clearSelection();
+});
+
+// initial
+build();
+fitToWindow();
+</script>
+</body>
+</html>
