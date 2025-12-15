@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Chinese Dynasties (TimelineJS)</title>
+
+<!-- TimelineJS3 (Knight Lab) -->
+<link rel="stylesheet" href="https://cdn.knightlab.com/libs/timeline3/latest/css/timeline.css">
+<script src="https://cdn.knightlab.com/libs/timeline3/latest/js/timeline.js"></script>
+
+<style>
+  html,body{height:100%;margin:0;background:#fff;}
+  #timeline-embed{width:100%;height:92vh;}
+  /* Small, safe overrides to keep a clean white theme */
+  .tl-timeline, .tl-slide-content-container, .tl-slide-content, .tl-slide {
+    background-color:#ffffff !important;
+  }
+</style>
+</head>
+<body>
+<div id="timeline-embed"></div>
+
+<script>
+  // Inline data object (no CORS issues; just host this HTML anywhere)
+  const timeline_json = {"title": {"text": {"headline": "Chinese dynasties", "text": "A compact dynastic timeline (BCE/CE) rendered with Knight Lab’s TimelineJS3."}, "background": {"color": "#ffffff"}}, "events": [{"start_date": {"year": -2070}, "end_date": {"year": -1600}, "text": {"headline": "Xia (2070 BCE–1600 BCE · 470 yrs)", "text": "Traditionally the first dynasty; early chronology is partly legendary/archaeological debate."}, "group": "Early", "background": {"color": "#ffffff"}}, {"start_date": {"year": -1600}, "end_date": {"year": -1046}, "text": {"headline": "Shang (1600 BCE–1046 BCE · 554 yrs)", "text": "Bronze Age; oracle bone inscriptions."}, "group": "Early", "background": {"color": "#ffffff"}}, {"start_date": {"year": -1046}, "end_date": {"year": -771}, "text": {"headline": "Zhou (Western) (1046 BCE–771 BCE · 275 yrs)", "text": "Ritual and political vocabulary crystallize; feudal polity."}, "group": "Early", "background": {"color": "#ffffff"}}, {"start_date": {"year": -770}, "end_date": {"year": -256}, "text": {"headline": "Zhou (Eastern) (770 BCE–256 BCE · 514 yrs)", "text": "Includes Spring and Autumn and Warring States periods."}, "group": "Early", "background": {"color": "#ffffff"}}, {"start_date": {"year": -221}, "end_date": {"year": -206}, "text": {"headline": "Qin (221 BCE–206 BCE · 15 yrs)", "text": "First imperial unification; major standardization policies; short-lived."}, "group": "Imperial", "background": {"color": "#ffffff"}}, {"start_date": {"year": -202}, "end_date": {"year": 9}, "text": {"headline": "Han (Western) (202 BCE–9 · 211 yrs)", "text": "Consolidation of imperial institutions; Silk Road networks expand."}, "group": "Imperial", "background": {"color": "#ffffff"}}, {"start_date": {"year": 9}, "end_date": {"year": 23}, "text": {"headline": "Xin (9–23 · 14 yrs)", "text": "Wang Mang’s short dynasty between Western and Eastern Han."}, "group": "Interregnum", "background": {"color": "#ffffff"}}, {"start_date": {"year": 25}, "end_date": {"year": 220}, "text": {"headline": "Han (Eastern) (25–220 · 195 yrs)", "text": "Restoration of Han; later fragmentation."}, "group": "Imperial", "background": {"color": "#ffffff"}}, {"start_date": {"year": 220}, "end_date": {"year": 280}, "text": {"headline": "Three Kingdoms (220–280 · 60 yrs)", "text": "Wei, Shu, Wu; a tripartite political landscape."}, "group": "Fragmentation", "background": {"color": "#ffffff"}}, {"start_date": {"year": 265}, "end_date": {"year": 316}, "text": {"headline": "Jin (Western) (265–316 · 51 yrs)", "text": "Reunification (280) followed by instability and court flight."}, "group": "Fragmentation", "background": {"color": "#ffffff"}}, {"start_date": {"year": 317}, "end_date": {"year": 420}, "text": {"headline": "Jin (Eastern) (317–420 · 103 yrs)", "text": "Southern court; northern polities fluctuate."}, "group": "Fragmentation", "background": {"color": "#ffffff"}}, {"start_date": {"year": 581}, "end_date": {"year": 618}, "text": {"headline": "Sui (581–618 · 37 yrs)", "text": "Reunification; Grand Canal; short but pivotal."}, "group": "Imperial", "background": {"color": "#ffffff"}}, {"start_date": {"year": 618}, "end_date": {"year": 907}, "text": {"headline": "Tang (618–907 · 289 yrs)", "text": "Cosmopolitan empire; poetry, administration, and trade flourish."}, "group": "Imperial", "background": {"color": "#ffffff"}}, {"start_date": {"year": 907}, "end_date": {"year": 960}, "text": {"headline": "Five Dynasties & Ten Kingdoms (907–960 · 53 yrs)", "text": "Political plurality after Tang, before Song consolidation."}, "group": "Fragmentation", "background": {"color": "#ffffff"}}, {"start_date": {"year": 960}, "end_date": {"year": 1127}, "text": {"headline": "Song (Northern) (960–1127 · 167 yrs)", "text": "Strong bureaucracy and economy; pressures on northern frontier."}, "group": "Imperial", "background": {"color": "#ffffff"}}, {"start_date": {"year": 916}, "end_date": {"year": 1125}, "text": {"headline": "Liao (916–1125 · 209 yrs)", "text": "Khitan dynasty in the north; coexisted with Song."}, "group": "Frontier", "background": {"color": "#ffffff"}}, {"start_date": {"year": 1115}, "end_date": {"year": 1234}, "text": {"headline": "Jin (Jurchen) (1115–1234 · 119 yrs)", "text": "Jurchen rule over much of northern China."}, "group": "Frontier", "background": {"color": "#ffffff"}}, {"start_date": {"year": 1127}, "end_date": {"year": 1279}, "text": {"headline": "Song (Southern) (1127–1279 · 152 yrs)", "text": "Southern court; maritime trade and urban culture."}, "group": "Imperial", "background": {"color": "#ffffff"}}, {"start_date": {"year": 1271}, "end_date": {"year": 1368}, "text": {"headline": "Yuan (1271–1368 · 97 yrs)", "text": "Mongol dynasty; vast Eurasian connections."}, "group": "Imperial", "background": {"color": "#ffffff"}}, {"start_date": {"year": 1368}, "end_date": {"year": 1644}, "text": {"headline": "Ming (1368–1644 · 276 yrs)", "text": "Early maritime expeditions; later internal and external pressures."}, "group": "Imperial", "background": {"color": "#ffffff"}}, {"start_date": {"year": 1636}, "end_date": {"year": 1912}, "text": {"headline": "Qing (1636–1912 · 276 yrs)", "text": "Manchu-led dynasty; last imperial house."}, "group": "Imperial", "background": {"color": "#ffffff"}}], "eras": [{"start_date": {"year": -2070}, "end_date": {"year": -256}, "text": {"headline": "Early dynastic & Zhou"}, "background": {"color": "#f6f7f9"}}, {"start_date": {"year": -221}, "end_date": {"year": 220}, "text": {"headline": "First unification & Han"}, "background": {"color": "#f6f7f9"}}, {"start_date": {"year": 220}, "end_date": {"year": 589}, "text": {"headline": "Age of division"}, "background": {"color": "#f6f7f9"}}, {"start_date": {"year": 581}, "end_date": {"year": 907}, "text": {"headline": "Imperial reunification & high empire"}, "background": {"color": "#f6f7f9"}}, {"start_date": {"year": 907}, "end_date": {"year": 1279}, "text": {"headline": "Song-era plural north/south"}, "background": {"color": "#f6f7f9"}}, {"start_date": {"year": 1271}, "end_date": {"year": 1912}, "text": {"headline": "Late imperial"}, "background": {"color": "#f6f7f9"}}], "scale": "human"};
+
+  const options = {
+    default_bg_color: {r:255,g:255,b:255},
+    timenav_position: "bottom",
+    timenav_height: 260,
+    scale_factor: 2
+  };
+
+  window.timeline = new TL.Timeline("timeline-embed", timeline_json, options);
+</script>
+</body>
+</html>
