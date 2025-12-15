@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Timeline</title>
+    <style>
+        /* --- CSS Styling --- */
+        body {
+            font-family: sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .timeline-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 40px;
+        }
+
+        /* The actual timeline (vertical line) */
+        .timeline {
+            position: relative;
+            padding: 20px 0;
+            list-style: none;
+        }
+
+        /* The vertical line */
+        .timeline::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background-color: #3f51b5; /* Blue line */
+            left: 50%;
+            margin-left: -2px;
+        }
+
+        /* Timeline item */
+        .timeline-item {
+            padding: 10px 0;
+            position: relative;
+            width: 50%;
+            /* Hidden by default */
+            opacity: 0; 
+            transform: translateY(20px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        
+        /* Item visible state (triggered by JS) */
+        .timeline-item.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Position items left and right */
+        .timeline-item:nth-child(odd) {
+            left: 0;
+            padding-right: 30px;
+            text-align: right;
+        }
+
+        .timeline-item:nth-child(even) {
+            left: 50%;
+            padding-left: 30px;
+            text-align: left;
+        }
+
+        /* The circle/dot on the line */
+        .timeline-item::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border: 4px solid #fff;
+            background-color: #ff9800; /* Orange dot */
+            top: 25px;
+            border-radius: 50%;
+            z-index: 1;
+            box-shadow: 0 0 0 2px #3f51b5;
+        }
+
+        /* Position the circle for left items */
+        .timeline-item:nth-child(odd)::after {
+            right: -10px;
+        }
+
+        /* Position the circle for right items */
+        .timeline-item:nth-child(even)::after {
+            left: -10px;
+        }
+
+        /* Content box styling */
+        .timeline-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 6px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            cursor: pointer; /* Indicates it's interactive */
+            transition: background-color 0.3s ease;
+            border-left: 5px solid #ff9800;
+        }
+        
+        .timeline-item:nth-child(even) .timeline-content {
+            border-left: none;
+            border-right: 5px solid #ff9800;
+        }
+
+        .timeline-content:hover {
+            background-color: #e8eaf6; /* Light blue on hover */
+        }
+
+        .timeline-content h3 {
+            margin-top: 0;
+            color: #3f51b5; /* Blue heading */
+        }
+
+        .timeline-content .year {
+            font-weight: bold;
+            color: #7986cb;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        /* Interactive detail box (hidden by default) */
+        .detail-box {
+            margin-top: 10px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out;
+            color: #555;
+        }
+        
+        .detail-box.open {
+            /* Set a large enough max-height to show the content */
+            max-height: 200px; 
+        }
+
+        /* --- Media Query for smaller screens --- */
+        @media (max-width: 768px) {
+            .timeline::before {
+                left: 20px; /* Move line to the left */
+            }
+
+            .timeline-item {
+                width: 100%; /* Full width */
+                padding-left: 50px; /* Space for the line and dot */
+                text-align: left; /* All text aligns left */
+            }
+            
+            .timeline-item:nth-child(odd) {
+                left: 0;
+                padding-right: 0;
+            }
+
+            .timeline-item:nth-child(even) {
+                left: 0;
+                padding-left: 50px;
+            }
+            
+            /* Move all dots to the left */
+            .timeline-item::after {
+                left: 12px;
+                right: auto;
+            }
+            
+            .timeline-item:nth-child(even) .timeline-content {
+                border-left: 5px solid #ff9800;
+                border-right: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="timeline-container">
+        <h1>Historical Milestones Timeline</h1>
+        
+        
+
+[Image of a timeline illustration]
+
+
+        <ul class="timeline" id="historicalTimeline">
+            
+            <li class="timeline-item">
+                <div class="timeline-content" onclick="toggleDetails(this)">
+                    <span class="year">1903</span>
+                    <h3>First Controlled Flight</h3>
+                    <p>The Wright brothers achieve the first sustained flight of a heavier-than-air powered machine.</p>
+                    <div class="detail-box">
+                        <p>This event marked the beginning of the aviation age and profoundly changed travel and warfare.</p>
+                    </div>
+                </div>
+            </li>
+
+            <li class="timeline-item">
+                <div class="timeline-content" onclick="toggleDetails(this)">
+                    <span class="year">1928</span>
+                    <h3>Discovery of Penicillin</h3>
+                    <p>Alexander Fleming discovers the first antibiotic, Penicillin, revolutionizing medicine.</p>
+                    <div class="detail-box">
+                        <p>Penicillin dramatically reduced the death toll from bacterial infections and injuries.</p>
+                    </div>
+                </div>
+            </li>
+
+            <li class="timeline-item">
+                <div class="timeline-content" onclick="toggleDetails(this)">
+                    <span class="year">1969</span>
+                    <h3>Moon Landing</h3>
+                    <p>NASA's Apollo 11 mission successfully lands humans on the Moon for the first time.</p>
+                    <div class="detail-box">
+                        <p>Neil Armstrong was the first man to step on the lunar surface, calling it "one small step for a man, one giant leap for mankind."</p>
+                    </div>
+                </div>
+            </li>
+            
+            <li class="timeline-item">
+                <div class="timeline-content" onclick="toggleDetails(this)">
+                    <span class="year">1991</span>
+                    <h3>World Wide Web Launched</h3>
+                    <p>Tim Berners-Lee introduces the World Wide Web to the public, setting the stage for the internet age.</p>
+                    <div class="detail-box">
+                        <p>The WWW layer made the internet accessible and user-friendly, leading to massive global connectivity.</p>
+                    </div>
+                </div>
+            </li>
+
+            <li class="timeline-item">
+                <div class="timeline-content" onclick="toggleDetails(this)">
+                    <span class="year">2007</span>
+                    <h3>Launch of the iPhone</h3>
+                    <p>Apple releases the first iPhone, pioneering the modern smartphone and mobile computing era.</p>
+                    <div class="detail-box">
+                        <p>The iPhone combined a mobile phone, an iPod, and an internet communicator into one device with a multi-touch interface.</p>
+                    </div>
+                </div>
+            </li>
+            
+        </ul>
+    </div>
+
+    <script>
+        /* --- JavaScript Interactivity --- */
+
+        // Function to toggle the hidden detail box when a timeline item is clicked
+        function toggleDetails(contentElement) {
+            // Find the detail-box within the clicked content element
+            const detailBox = contentElement.querySelector('.detail-box');
+            
+            // Toggle the 'open' class
+            detailBox.classList.toggle('open');
+        }
+
+        // Observer for scroll animation (optional, but adds a nice effect)
+        document.addEventListener("DOMContentLoaded", function() {
+            const items = document.querySelectorAll('.timeline-item');
+
+            const observer = new IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    // When the item enters the viewport, add the 'active' class
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('active');
+                    }
+                    // Optionally remove the class if it leaves the viewport (for repeating animation)
+                    // else {
+                    //     entry.target.classList.remove('active');
+                    // }
+                });
+            }, {
+                // The element is considered visible when at least 10% of it is in view
+                threshold: 0.1 
+            });
+
+            // Start observing each timeline item
+            items.forEach(item => {
+                observer.observe(item);
+            });
+        });
+    </script>
+
+</body>
+</html>
